@@ -130,6 +130,3 @@ void moveToHome() {
   elbowAngle = HOME_ELBOW;
   delay(500);
 }
-//这行注释是为了测试git的功能 以及下面这个方括号也是
-{}
-//这行注释是为了测试能否push到github上
