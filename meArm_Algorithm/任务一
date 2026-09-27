@@ -17,7 +17,7 @@ const int clawoff  =
 
 //3.函数定义区
 void serial_handle();//串口数据处理函数
- 
+void move_home();//上电回中函数 
 
 //4.创建舵机对象
 Servo base_servo;
@@ -26,8 +26,18 @@ Servo right_servo;
 Servo claw_servo;
 //5.定义speed_delay
 int speed_dalay=15;
-//定义摇杆步进
+//6.定义摇杆步进
 int step =2;
+//7.定义当前角度
+int base_angle=90;
+int left_angle=90;
+int right_angle=90;
+int claw_angle=35;
+//8.回中角度区
+const int base_homeangle=90;
+const int left_homeanlge=90;
+const int right_homeangle=90;
+const int claw_homeangle=35;
 void setup()
 {
     Serial.begin(9600);//启动串口通信
@@ -39,11 +49,36 @@ void setup()
     delay(200);
     claw_servo.write(clawpin);
     delay(200);
+    move_home;//上电回中
     Serial.println("Init finish!")
     delay(500);
 }
 
 void loop()
 {
+
+}
+void serial_handle()
+{
+    if(Serial.available)
+    {
+        String cmd = Serial.readStringuntil('\n');
+        cmd.trim();
+        if(cmd=="O")
+        {
+            
+        }
+       
+    }
     
+}
+
+
+void move_home()
+{
+    base_servo.write(base_homeangle);
+    left_angle.write(left_homeanlge);
+    right_angle.write(right_homeangle);
+    claw_angle.write(claw_homeangle);
+    delay(30);
 }
