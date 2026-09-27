@@ -16,8 +16,8 @@ struct Joint {
 Joint joints[4] = {
     // servo, servoPin, joyPin, angle, min, max, step, invert
     { {}, 11, A0, 90, 0, 180, 2, false },  // 底座
-    { {}, 10, A1, 90, 0, 180, 2, true  },  // 肩部
-    { {},  9, A2, 90, 0, 180, 2, false },  // 肘部
+    { {}, 10, A1, 45, 0, 180, 2, true  },  // 肩部（后臂）
+    { {},  9, A2, 30, 0, 120, 2, false },  // 肘部（前臂）
     { {},  6, A3, 35, 0,  70, 2, false },  // 夹爪
 };
 
@@ -28,6 +28,7 @@ void setup() {
 
   for (int i = 0; i < 4; i++) {
     joints[i].servo.attach(joints[i].servoPin);
+    delay(200);//稳定性，防止电压塌陷
     joints[i].servo.write(joints[i].angle);
   }
 
