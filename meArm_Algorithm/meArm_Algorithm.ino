@@ -1,4 +1,7 @@
 #include <Servo.h>
+void handleSerial();
+void handleJoystick();
+void moveToHome();
 
 // ========== 引脚定义（按你的实际接线修改）==========
 #define BASE_PIN     11   // 底座舵机
