@@ -1,0 +1,49 @@
+#include <servo.h>
+//1.舵机引脚区
+#define basepin  D9
+#define leftpin  D8
+#define rightpin D7
+#define clawpin  D6
+
+//2.极限角度区
+const int basemax  = 
+const int basemin  =
+const int leftmax  =
+const int leftmin  =
+const int rightmax =
+const int rightmin =
+const int clawopen =
+const int clawoff  =
+
+//3.函数定义区
+void serial_handle();//串口数据处理函数
+ 
+
+//4.创建舵机对象
+Servo base_servo;
+Servo left_servo;
+Servo right_servo;
+Servo claw_servo;
+//5.定义speed_delay
+int speed_dalay=15;
+//定义摇杆步进
+int step =2;
+void setup()
+{
+    Serial.begin(9600);//启动串口通信
+    base_servo.write(basepin);
+    delay(200);
+    left_servo.write(leftpin);
+    delay(200);
+    right_servo.write(rightpin);
+    delay(200);
+    claw_servo.write(clawpin);
+    delay(200);
+    Serial.println("Init finish!")
+    delay(500);
+}
+
+void loop()
+{
+    
+}
