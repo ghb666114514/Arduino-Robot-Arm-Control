@@ -1,9 +1,9 @@
 #include <Servo.h>
 //1.舵机引脚区
-#define basepin  9
-#define leftpin  8
-#define rightpin 7
-#define clawpin  6
+#define basepin  D9
+#define leftpin  D8
+#define rightpin D7
+#define clawpin  D6
 
 //2.极限角度区
 const int basemax  = 180;
@@ -37,7 +37,11 @@ int claw_angle=35;
 const int base_homeangle=90;
 const int left_homeangle=90;
 const int right_homeangle=90;
-const int claw_homeangle=35;
+const int claw_homeangle=clawoff;
+//9.摇杆引脚区
+#define joyx_pin A0
+#define joyy_pin A1
+
 void setup()
 {
     Serial.begin(9600);//启动串口通信
@@ -100,20 +104,23 @@ void serial_handle()
         Serial.print("Speed low!speed:");
         Serial.print(speed_delay);
     }
-    else if(cmd.startsWith"x")
+    else if(cmd.startsWith("x"))
     {
         int x,y,z;
         if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &x, &y, &z) == 3)
         {
             //x对应base y对应left_servo z对应right_servo
-            base_servo.write(x);
+            base_angle = constrain(x,basemin,basemax);
+            base_servo.write(base_angle);
             delay(30);
-            left_servo.write(y);
+            left_angle = constrain(y,leftmin,leftmax);
+            left_servo.write(left_angle);
             delay(30);
-            right_servo.write(z);
+            right_angle=constrain(z,rightmin,rightmax);
+            right_servo.write(right_angle);
             delay(30);
         }
-        
+
         
     }
     else Serial.print("cmd ERROR!");
@@ -127,5 +134,28 @@ void move_home()
     left_servo.write(left_homeangle);
     right_servo.write(right_homeangle);
     claw_servo.write(claw_homeangle);
+    base_angle=base_homeangle;
+    left_angle = left_homeangle;
+    right_angle = right_homeangle;
+    claw_angle = clawoff;
     delay(30);
+}
+
+//3.摇杆控制函数
+void handlejoystick() {
+    const int deadzone = 50;//死区防抖
+  int joyx = analogRead(joyx_pin);
+  int joyy = analogRead(joyy_pin);
+
+  // 死区处理 
+  if (abs(joyx-512)>deadzone) {
+    
+
+
+    
+  }
+
+  if (abs(joyy - 512) > deadzone) {
+    
+  }
 }
