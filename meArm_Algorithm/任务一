@@ -100,9 +100,20 @@ void serial_handle()
         Serial.print("Speed low!speed:");
         Serial.print(speed_delay);
     }
-    else if(0)
+    else if(cmd.startsWith"x")
     {
-        //解析x30,y45,z60的多舵机协同代码还未完成
+        int x,y,z;
+        if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &x, &y, &z) == 3)
+        {
+            //x对应base y对应left_servo z对应right_servo
+            base_servo.write(x);
+            delay(30);
+            left_servo.write(y);
+            delay(30);
+            right_servo.write(z);
+            delay(30);
+        }
+        
         
     }
     else Serial.print("cmd ERROR!");
