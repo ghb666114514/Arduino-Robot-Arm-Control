@@ -88,20 +88,20 @@ void handleSerial() {
     else if (cmd.startsWith("x")) {
       int x, y, z;
       if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &x, &y, &z) == 3) {
-        servoBase.write(constrain(x, BASE_MIN, BASE_MAX));
-        servoShoulder.write(constrain(y, SHOULDER_MIN, SHOULDER_MAX));
-        servoElbow.write(constrain(z, ELBOW_MIN, ELBOW_MAX));
-        baseAngle = x;
-        shoulderAngle = y;
-        elbowAngle = z;
-        Serial.println("Multi-servo OK");
+        baseAngle = constrain(x, BASE_MIN, BASE_MAX);
+        shoulderAngle = constrain(y, SHOULDER_MIN, SHOULDER_MAX);
+        elbowAngle = constrain(z, ELBOW_MIN, ELBOW_MAX);
+        servoBase.write(baseAngle);
+        servoShoulder.write(shoulderAngle);
+        servoElbow.write(elbowAngle);
+        Serial.println("Finish!");
       }
     }
   }
 }
 
 // ========== 摇杆控制 ==========
-void handleJoystick() {
+  void handleJoystick() {
   int joyX = analogRead(JOY_X_PIN);
   int joyY = analogRead(JOY_Y_PIN);
 
