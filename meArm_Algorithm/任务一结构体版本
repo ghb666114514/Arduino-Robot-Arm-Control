@@ -1,0 +1,171 @@
+#include <Servo.h>
+
+void handleSerial();
+void handleJoystick();
+void moveToHome();
+
+// ========== 引脚 ==========
+#define BASE_PIN     11
+#define SHOULDER_PIN 10
+#define ELBOW_PIN    9
+#define CLAW_PIN     6
+
+#define JOY1_X_PIN   A0
+#define JOY1_Y_PIN   A1
+#define JOY2_X_PIN   A2
+#define JOY2_Y_PIN   A3
+
+// ========== 角度限制 ==========
+const int BASE_MIN = 0,     BASE_MAX = 180;
+const int SHOULDER_MIN = 45, SHOULDER_MAX = 180;
+const int ELBOW_MIN = 35,   ELBOW_MAX = 120;
+const int CLAW_MIN = 25,    CLAW_MAX = 100;
+
+// ========== 死区与速度 ==========
+const int JOY_DEADZONE = 50;
+int speedDelay = 15;
+int stepSize = 2;
+
+// ========== 当前角度 ==========
+int baseAngle = 90;
+int shoulderAngle = 90;
+int elbowAngle = 90;
+int clawAngle = 35;
+
+// ========== 回中姿态 ==========
+const int HOME_BASE = 90;
+const int HOME_SHOULDER = 90;
+const int HOME_ELBOW = 90;
+const int HOME_CLAW = 35;
+
+// ========== 关节结构体 ==========
+struct Joint {
+    Servo servo;
+    int *current;
+    int minAngle;
+    int maxAngle;
+};
+
+Joint jointBase     = { {}, &baseAngle,     BASE_MIN,     BASE_MAX     };
+Joint jointShoulder = { {}, &shoulderAngle, SHOULDER_MIN, SHOULDER_MAX };
+Joint jointElbow    = { {}, &elbowAngle,    ELBOW_MIN,    ELBOW_MAX    };
+Joint jointClaw     = { {}, &clawAngle,     CLAW_MIN,     CLAW_MAX     };
+
+void setup() {
+    Serial.begin(9600);
+
+    jointBase.servo.attach(BASE_PIN);
+    delay(200);
+    jointShoulder.servo.attach(SHOULDER_PIN);
+    delay(200);
+    jointElbow.servo.attach(ELBOW_PIN);
+    delay(200);
+    jointClaw.servo.attach(CLAW_PIN);
+    delay(200);
+
+    moveToHome();
+    Serial.println("MeArm ready. Commands: O/S/H/L, x,y,z");
+}
+
+void loop() {
+    handleSerial();
+    handleJoystick();
+}
+
+// ========== 直接写角度 ==========
+void writeJoint(Joint &joint, int target) {
+    target = constrain(target, joint.minAngle, joint.maxAngle);
+    *(joint.current) = target;
+    joint.servo.write(target);
+    delay(speedDelay);
+}
+
+// ========== 平滑移动到目标角度 ==========
+void moveJoint(Joint &joint, int target) {
+    target = constrain(target, joint.minAngle, joint.maxAngle);
+    int cur = *(joint.current);
+    while (cur != target) {
+        cur += (target > cur) ? 1 : -1;
+        joint.servo.write(cur);
+        delay(speedDelay);
+    }
+    *(joint.current) = target;
+}
+
+// ========== 串口指令 ==========
+void handleSerial() {
+    if (Serial.available() > 0) {
+        String cmd = Serial.readStringUntil('\n');
+        cmd.trim();
+
+        if (cmd == "O") {
+            moveJoint(jointClaw, CLAW_MAX);
+            Serial.println("Claw OPEN");
+        }
+        else if (cmd == "S") {
+            moveJoint(jointClaw, CLAW_MIN);
+            Serial.println("Claw CLOSE");
+        }
+        else if (cmd == "H") {
+            speedDelay = max(5, speedDelay - 3);
+            stepSize = min(10, stepSize + 1);
+            Serial.print("Speed UP, delay=");
+            Serial.print(speedDelay);
+            Serial.print(", step=");
+            Serial.println(stepSize);
+        }
+        else if (cmd == "L") {
+            speedDelay = min(30, speedDelay + 3);
+            stepSize = max(1, stepSize - 1);
+            Serial.print("Speed DOWN, delay=");
+            Serial.print(speedDelay);
+            Serial.print(", step=");
+            Serial.println(stepSize);
+        }
+        else if (cmd.startsWith("x")) {
+            int x, y, z;
+            if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &x, &y, &z) == 3) {
+                moveJoint(jointBase, x);
+                moveJoint(jointShoulder, y);
+                moveJoint(jointElbow, z);
+                Serial.println("Finish!");
+            }
+        }
+    }
+}
+
+// ========== 摇杆控制 ==========
+void handleJoystick() {
+    int j1x = analogRead(JOY1_X_PIN);
+    int j1y = analogRead(JOY1_Y_PIN);
+    int j2x = analogRead(JOY2_X_PIN);
+    int j2y = analogRead(JOY2_Y_PIN);
+
+    if (abs(j1x - 512) > JOY_DEADZONE) {
+        int target = *(jointBase.current) + ((j1x > 512) ? stepSize : -stepSize);
+        writeJoint(jointBase, target);
+    }
+
+    if (abs(j1y - 512) > JOY_DEADZONE) {
+        int target = *(jointShoulder.current) + ((j1y > 512) ? -stepSize : stepSize);
+        writeJoint(jointShoulder, target);
+    }
+
+    if (abs(j2x - 512) > JOY_DEADZONE) {
+        int target = *(jointElbow.current) + ((j2x > 512) ? stepSize : -stepSize);
+        writeJoint(jointElbow, target);
+    }
+
+    if (abs(j2y - 512) > JOY_DEADZONE) {
+        int target = *(jointClaw.current) + ((j2y > 512) ? stepSize : -stepSize);
+        writeJoint(jointClaw, target);
+    }
+}
+
+// ========== 回中 ==========
+void moveToHome() {
+    moveJoint(jointBase, HOME_BASE);
+    moveJoint(jointShoulder, HOME_SHOULDER);
+    moveJoint(jointElbow, HOME_ELBOW);
+    moveJoint(jointClaw, HOME_CLAW);
+}
