@@ -20,12 +20,12 @@ void serial_handle();//串口数据处理函数
 void move_home();//上电回中函数 
 
 //4.创建舵机对象
-Servo base_servo;
-Servo left_servo;
-Servo right_servo;
-Servo claw_servo;
-//5.定义speed_delay
-int speed_delay=15;
+Servo base;
+Servo left;
+Servo right;
+Servo claw;
+//5.定义DSD
+int DSD=15;
 //6.定义摇杆步进
 int step =2;
 //7.定义当前角度
@@ -45,13 +45,13 @@ const int claw_homeangle=clawoff;
 void setup()
 {
     Serial.begin(9600);//启动串口通信
-    base_servo.write(basepin);
+    base.write(basepin);
     delay(200);
-    left_servo.write(leftpin);
+    left.write(leftpin);
     delay(200);
-    right_servo.write(rightpin);
+    right.write(rightpin);
     delay(200);
-    claw_servo.write(clawpin);
+    claw.write(clawpin);
     delay(200);
     move_home();//上电回中
     Serial.println("Init finish!");
@@ -76,8 +76,8 @@ void serial_handle()
         {
            for(int i = claw_angle;i<=clawopen;i++)
            {
-                claw_servo.write(i);
-                delay(speed_delay);
+                claw.write(i);
+                delay(DSD);
            }
            claw_angle=clawopen;
            Serial.println("Claw open!");
@@ -87,37 +87,37 @@ void serial_handle()
        {
         for(int i = claw_angle;i>=clawoff;i--)
            {
-                claw_servo.write(i);
-                delay(speed_delay);
+                claw.write(i);
+                delay(DSD);
            }
            claw_angle=clawoff;
            Serial.println("Claw close!");
        }
        else if(cmd=="H")
        {
-        speed_delay=max(5,speed_delay-3);
+        DSD=max(5,DSD-3);
         Serial.print("Speed up!speed:");
-        Serial.print(speed_delay);
+        Serial.print(DSD);
     }
     else if(cmd=="L") {
-        speed_delay=min(30,speed_delay+3);
+        DSD=min(30,DSD+3);
         Serial.print("Speed low!speed:");
-        Serial.print(speed_delay);
+        Serial.print(DSD);
     }
     else if(cmd.startsWith("x"))
     {
         int x,y,z;
         if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &x, &y, &z) == 3)
         {
-            //x对应base y对应left_servo z对应right_servo
+            //x对应base y对应left z对应right
             base_angle = constrain(x,basemin,basemax);
-            base_servo.write(base_angle);
+            base.write(base_angle);
             delay(30);
             left_angle = constrain(y,leftmin,leftmax);
-            left_servo.write(left_angle);
+            left.write(left_angle);
             delay(30);
             right_angle=constrain(z,rightmin,rightmax);
-            right_servo.write(right_angle);
+            right.write(right_angle);
             delay(30);
         }
 
@@ -130,10 +130,10 @@ void serial_handle()
 //2.回中函数
 void move_home()
 {
-    base_servo.write(base_homeangle);
-    left_servo.write(left_homeangle);
-    right_servo.write(right_homeangle);
-    claw_servo.write(claw_homeangle);
+    base.write(base_homeangle);
+    left.write(left_homeangle);
+    right.write(right_homeangle);
+    claw.write(claw_homeangle);
     base_angle=base_homeangle;
     left_angle = left_homeangle;
     right_angle = right_homeangle;
