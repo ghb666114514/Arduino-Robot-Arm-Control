@@ -5,9 +5,9 @@ void handleJoystick();
 void moveToHome();
 
 // ========== 引脚 ==========
-#define BASE_PIN     11
-#define SHOULDER_PIN 10
-#define ELBOW_PIN    9
+#define BASE_PIN     9
+#define SHOULDER_PIN 8
+#define ELBOW_PIN    7
 #define CLAW_PIN     6
 
 #define JOY1_X_PIN   A0
@@ -17,9 +17,9 @@ void moveToHome();
 
 // ========== 角度限制 ==========
 const int BASE_MIN = 0,     BASE_MAX = 180;
-const int SHOULDER_MIN = 45, SHOULDER_MAX = 180;
-const int ELBOW_MIN = 35,   ELBOW_MAX = 120;
-const int CLAW_MIN = 25,    CLAW_MAX = 100;
+const int SHOULDER_MIN = 10, SHOULDER_MAX = 120;
+const int ELBOW_MIN = 45,   ELBOW_MAX = 180;
+const int CLAW_MIN = 0,    CLAW_MAX = 105;
 
 // ========== 死区与速度 ==========
 const int JOY_DEADZONE = 50;
@@ -36,7 +36,7 @@ int clawAngle = 35;
 const int HOME_BASE = 90;
 const int HOME_SHOULDER = 90;
 const int HOME_ELBOW = 90;
-const int HOME_CLAW = 35;
+const int HOME_CLAW = 105;
 
 // ========== 关节结构体 ==========
 struct Joint {
@@ -169,3 +169,5 @@ void moveToHome() {
     moveJoint(jointElbow, HOME_ELBOW);
     moveJoint(jointClaw, HOME_CLAW);
 }
+
+1
