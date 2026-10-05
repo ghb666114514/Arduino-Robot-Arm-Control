@@ -3,9 +3,9 @@
 void gohome();//回中函数
 void serial_handle();//串口指令读取与处理
 void joystick_handle();//摇杆指令处理
-void angle_print();
+void pick(int place[][4]);//夹取物体函数
 //------------------
-Servo base,larm,rarm,claw//创建舵机对象
+Servo base,larm,rarm,claw;//创建舵机对象
 
 //2.DSD 与 step 与 死区
 int DSD = 15; //摇杆延时
@@ -21,16 +21,55 @@ int claw_angle = 90;
 //4.极限角度区
 const int basemin=0;
 const int basemax=180;
-const int larmmin=0
+const int larmmin=0;
 const int larmmax=180;
-const int rarmmin=0
+const int rarmmin=0;
 const int rarmmax=180;
-const int clawopen=0
+const int clawopen=0;
 const int clawoff=180;
+//5.任务二夹取物体区
+int Aplace[8][4] = {
+  // base, larm, rarm, claw
+  { 90, 90, 90, 20 },   // 1. 物体正上方
+  { 90, 80, 100, 20 },  // 2. 下降到物体
+  { 90, 80, 100, 105 }, // 3. 夹爪闭合
+  { 90, 90, 90, 105 },  // 4. 抬升
+  { 45, 90, 90, 105 },  // 5. 放置点上方
+  { 45, 80, 100, 105 }, // 6. 下降到放置点
+  { 45, 80, 100, 20 },  // 7. 夹爪张开
+  { 45, 90, 90, 20 }    // 8. 抬升
+};
+
+int Bplace[8][4] = {
+  // base, larm, rarm, claw
+  { 90, 90, 90, 20 },   // 1. 物体正上方
+  { 90, 80, 100, 20 },  // 2. 下降到物体
+  { 90, 80, 100, 105 }, // 3. 夹爪闭合
+  { 90, 90, 90, 105 },  // 4. 抬升
+  { 45, 90, 90, 105 },  // 5. 放置点上方
+  { 45, 80, 100, 105 }, // 6. 下降到放置点
+  { 45, 80, 100, 20 },  // 7. 夹爪张开
+  { 45, 90, 90, 20 }    // 8. 抬升
+};
+
+int Cplace[8][4] = {
+  // base, larm, rarm, claw
+  { 90, 90, 90, 20 },   // 1. 物体正上方
+  { 90, 80, 100, 20 },  // 2. 下降到物体
+  { 90, 80, 100, 105 }, // 3. 夹爪闭合
+  { 90, 90, 90, 105 },  // 4. 抬升
+  { 45, 90, 90, 105 },  // 5. 放置点上方
+  { 45, 80, 100, 105 }, // 6. 下降到放置点
+  { 45, 80, 100, 20 },  // 7. 夹爪张开
+  { 45, 90, 90, 20 }    // 8. 抬升
+};
+
+
+
 
 void setup()
 {
-  serial.begin(9600);//开启串口通信
+  Serial.begin(9600);//开启串口通信
   base.attach(9);
   delay(200);
   larm.attach(8);
@@ -40,13 +79,14 @@ void setup()
   claw.attach(6);
   delay(200);
   gohome();//上电回中
-  Serial.println("meArm ready!请发送指令:O/S/H/L/I/P");
+  Serial.println("meArm ready!请发送指令:O/S/H/L/I/P/A/B/C");
   Serial.println("或发送多电机协同控制指令,x控制底座,y控制左臂,z控制右臂,格式为x30,y45,z60");
 }
 
 void loop()
 {
-
+  serial_handle();
+  joystick_handle();
 }
 
 //函数定义区-----------------
@@ -70,21 +110,21 @@ void serial_handle()
 {
   if(Serial.available()>0)
   {
-    String cmd = readStringUntil('\n');
+    String cmd = Serial.readStringUntil('\n');
     cmd.trim();
 
     if(cmd=="O")
     {
-      claw_angle = claw_open;
-      claw.write(claw_open);
-      Serial.println(Claw open!);
+      claw_angle = clawopen;
+      claw.write(clawopen);
+      Serial.println("Claw open!");
     }
 
     else if(cmd=="S")
     {
-      claw_angle = claw_off;
-      claw.write(claw_off);
-      Serial.println(Claw close!);
+      claw_angle = clawoff;
+      claw.write(clawoff);
+      Serial.println("Claw close!");
     }
 
     else if(cmd=="H")
@@ -126,22 +166,43 @@ void serial_handle()
       Serial.println("------------------");
     }
     //多舵机协同控制
-    else if(cmd.startswith("x"))
+    else if (cmd.startsWith("x")) 
     {
-      char t=Serial.read();
-      base_angle=Serial.read();
-      char t=Serial.read();
-      larm_angle=Serial.read();
-      char t=Serial.read();
-      rarm_angle=Serial.read();
-      base.write(base_angle);
-      delay(300);
-      larm.write(larm_angle);
-      delay(300);
-      rarm.write(rarm_angle);
-      delay(300);
+    if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &base_angle, &larm_angle, &rarm_angle) == 3) 
+    {
+        base_angle = constrain(base_angle, basemin, basemax);
+        larm_angle = constrain(larm_angle, larmmin, larmmax);
+        rarm_angle = constrain(rarm_angle, rarmmin, rarmmax);
+
+        base.write(base_angle);
+        delay(300);
+        larm.write(larm_angle);
+        delay(300);
+        rarm.write(rarm_angle);
+        delay(300);
+
+        Serial.println("多舵机协同转动完毕！");
     }
-    else
+
+
+  }
+
+  else if (cmd == "A") 
+{
+  pick(Aplace);
+  Serial.println("A done");
+}
+else if (cmd == "B") 
+{
+  pick(Bplace);
+  Serial.println("B done");
+}
+else if (cmd == "C") 
+{
+  pick(Cplace);
+  Serial.println("C done");
+}
+else
     {
       Serial.println("指令错误！");
     }
@@ -149,19 +210,20 @@ void serial_handle()
 
 }
 
-void joystick_handle() {
-  int joy1_x=analogread(A0);//底座
-  int joy1_y=analogread(A1);//larm
-  int joy2_x=analogread(A2);//爪子
-  int joy2_y=analogread(A3);//rarm
+void joystick_handle() 
+{
+  int joy1_x=analogRead(A0);//base
+  int joy1_y=analogRead(A1);//larm
+  int joy2_x=analogRead(A2);//claw
+  int joy2_y=analogRead(A3);//rarm
 if(abs(joy1_x-512)>deadzone)
 {
-  base_angle+=(joy1_x>512?step:-step);
+  base_angle+=(joy1_x>512?-step:step);
   base_angle=constrain(base_angle,basemin,basemax);
   base.write(base_angle);
   delay(DSD);
 }
-else if(abs(joy1_y-512)>deadzone)
+if(abs(joy1_y-512)>deadzone)
 {
   larm_angle+=(joy1_y>512?step:-step);
   larm_angle=constrain(larm_angle,larmmin,larmmax);
@@ -181,4 +243,20 @@ if(abs(joy2_y-512)>deadzone)
   rarm_angle=constrain(rarm_angle,rarmmin,rarmmax);
   rarm.write(rarm_angle);
   delay(DSD);
+}
+}
+
+void pick(int place[][4]) 
+{
+  for (int i = 0; i < 8; i++) 
+  {
+    base.write(place[i][0]);
+    delay(200);
+    larm.write(place[i][1]);
+    delay(200);
+    rarm.write(place[i][2]);
+    delay(200);
+    claw.write(place[i][3]);
+    delay(200);
+  }
 }
