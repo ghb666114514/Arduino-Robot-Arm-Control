@@ -163,6 +163,10 @@ void serial_handle()
       Serial.println(rarm_angle);
       Serial.print("claw = ");
       Serial.println(claw_angle);
+      Serial.print("DSD=")
+      Serial.println(DSD);
+      Serial.print("step=")
+      Serial.println(step);
       Serial.println("------------------");
     }
     //多舵机协同控制
