@@ -1,180 +1,184 @@
 #include <Servo.h>
+//1.函数声明区---------
+void gohome();//回中函数
+void serial_handle();//串口指令读取与处理
+void joystick_handle();//摇杆指令处理
+void angle_print();
+//------------------
+Servo base,larm,rarm,claw//创建舵机对象
 
-// ========== 函数声明 ==========
-void serial_handle();
-void handlejoystick();
-void move_home();
-void moveServo(Servo &s, int &current, int target, int minA, int maxA);
+//2.DSD 与 step 与 死区
+int DSD = 15; //摇杆延时
+int step = 3; //摇杆步进
+int deadzone = 50;
 
-// ========== 1. 舵机引脚区 ==========
-#define basepin  9
-#define rArmpin  8
-#define fArmpin  7
-#define clawpin  6
-
-// ========== 2. 极限角度区 ==========
-const int basemin  = 0;
-const int basemax  = 180;
-const int rArmmin  = 10;
-const int rArmmax  = 120;
-const int fArmmin = 45;
-const int fArmmax = 180;
-const int clawopen = 20;   // 张开
-const int clawoff  = 105;  // 闭合
-
-// ========== 3. 创建舵机对象 ==========
-Servo base;
-Servo rArm;
-Servo fArm;
-Servo claw;
-
-// ========== 4. 定义 DSD 和摇杆步进 ==========
-int DSD = 15;
-int step = 2;
-
-// ========== 5. 定义当前角度 ==========
+//3.当前舵机角度
 int base_angle = 90;
-int rArm_angle = 90;
-int fArm_angle = 90;
-int claw_angle = 20;
+int larm_angle = 90;
+int rarm_angle = 90;
+int claw_angle = 90;
 
-// ========== 6. 回中角度区 ==========
-const int base_homeangle  = 90;
-const int rArm_homeangle  = 90;
-const int fArm_homeangle = 90;
-const int claw_homeangle  = clawopen;
+//4.极限角度区
+const int basemin=0;
+const int basemax=180;
+const int larmmin=0
+const int larmmax=180;
+const int rarmmin=0
+const int rarmmax=180;
+const int clawopen=0
+const int clawoff=180;
 
-// ========== 7. 摇杆引脚区 ==========
-#define joy1x_pin A0   // 摇杆1 X -> 底座
-#define joy1y_pin A1   // 摇杆1 Y -> 后臂
-#define joy2x_pin A2   // 摇杆2 X -> 前臂
-#define joy2y_pin A3   // 摇杆2 Y -> 夹爪
-
-// ========== 8. 死区 ==========
-const int deadzone = 50;
-
-void setup() {
-  Serial.begin(9600);
-
-  base.attach(basepin);
+void setup()
+{
+  serial.begin(9600);//开启串口通信
+  base.attach(9);
   delay(200);
-  rArm.attach(rArmpin);
+  larm.attach(8);
   delay(200);
-  fArm.attach(fArmpin);
+  rarm.attach(7);
   delay(200);
-  claw.attach(clawpin);
+  claw.attach(6);
   delay(200);
-
-  move_home();
-  Serial.println("Init finish!");
-  delay(500);
+  gohome();//上电回中
+  Serial.println("meArm ready!请发送指令:O/S/H/L/I/P");
+  Serial.println("或发送多电机协同控制指令,x控制底座,y控制左臂,z控制右臂,格式为x30,y45,z60");
 }
 
-void loop() {
-  serial_handle();
-  handlejoystick();
+void loop()
+{
+
 }
 
-// ========== 平滑移动一个舵机 ==========
-void moveServo(Servo &s, int &current, int target, int minA, int maxA) {
-  target = constrain(target, minA, maxA);
-  while (current != target) {
-    current += (target > current) ? 1 : -1;
-    s.write(current);
-    delay(DSD);
-  }
+//函数定义区-----------------
+void gohome()
+{
+  base_angle=90;
+  larm_angle=90;
+  rarm_angle=90;
+  claw_angle=90;
+  base.write(90);
+  delay(300);
+  larm.write(90);
+  delay(300);
+  rarm.write(90);
+  delay(300);
+  claw.write(90);
+  delay(300);
 }
 
-// ========== 1. 串口处理函数 ==========
-void serial_handle() {
-  if (Serial.available() != 0) {
-    String cmd = Serial.readStringUntil('\n');
+void serial_handle()
+{
+  if(Serial.available()>0)
+  {
+    String cmd = readStringUntil('\n');
     cmd.trim();
 
-    if (cmd == "O") {
-      moveServo(claw, claw_angle, clawopen, clawopen,clawoff);
-      Serial.println("Claw open!");
+    if(cmd=="O")
+    {
+      claw_angle = claw_open;
+      claw.write(claw_open);
+      Serial.println(Claw open!);
     }
-    else if (cmd == "S") {
-      moveServo(claw, claw_angle, clawoff, clawopen,clawoff);
-      Serial.println("Claw close!");
+
+    else if(cmd=="S")
+    {
+      claw_angle = claw_off;
+      claw.write(claw_off);
+      Serial.println(Claw close!);
     }
-    else if (cmd == "H") {
+
+    else if(cmd=="H")
+    {
       DSD = max(5, DSD - 3);
-      step = min(10, step + 1);
+      step = min(15, step + 3);
       Serial.print("Speed up! DSD=");
       Serial.print(DSD);
       Serial.print(", step=");
       Serial.println(step);
     }
-    else if (cmd == "L") {
-      DSD = min(30, DSD + 3);
-      step = max(1, step - 1);
+    
+    else if(cmd=="L")
+    {
+      DSD = min(30, DSD + 5);
+      step = max(1, step - 3);
       Serial.print("Speed low! DSD=");
       Serial.print(DSD);
       Serial.print(", step=");
       Serial.println(step);
     }
-    else if (cmd.startsWith("x")) {
-      int x, y, z;
-      if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &x, &y, &z) == 3) {
-        moveServo(base,  base_angle,  x, basemin,  basemax);
-        moveServo(rArm,  rArm_angle,  y, rArmmin,  rArmmax);
-        moveServo(fArm, fArm_angle, z, fArmmin, fArmmax);
-        Serial.println("Finish!");
-      }
+
+    else if(cmd=="I")
+    {
+      gohome();
     }
-    else {
-      Serial.println("cmd ERROR!");
+    
+    else if(cmd=="P")
+    {
+      Serial.println("---- 当前角度 ----");
+      Serial.print("base = ");
+      Serial.println(base_angle);
+      Serial.print("larm = ");
+      Serial.println(larm_angle);
+      Serial.print("rarm = ");
+      Serial.println(rarm_angle);
+      Serial.print("claw = ");
+      Serial.println(claw_angle);
+      Serial.println("------------------");
+    }
+    //多舵机协同控制
+    else if(cmd.startswith("x"))
+    {
+      char t=Serial.read();
+      base_angle=Serial.read();
+      char t=Serial.read();
+      larm_angle=Serial.read();
+      char t=Serial.read();
+      rarm_angle=Serial.read();
+      base.write(base_angle);
+      delay(300);
+      larm.write(larm_angle);
+      delay(300);
+      rarm.write(rarm_angle);
+      delay(300);
+    }
+    else
+    {
+      Serial.println("指令错误！");
     }
   }
+
 }
 
-// ========== 2. 回中函数 ==========
-void move_home() {
-  moveServo(base,  base_angle,  base_homeangle,  basemin,  basemax);
-  moveServo(rArm,  rArm_angle,  rArm_homeangle,  rArmmin,  rArmmax);
-  moveServo(fArm, fArm_angle, fArm_homeangle, fArmmin, fArmmax);
-  moveServo(claw,  claw_angle,  claw_homeangle,  clawopen,clawoff);
-  delay(30);
+void joystick_handle() {
+  int joy1_x=analogread(A0);//底座
+  int joy1_y=analogread(A1);//larm
+  int joy2_x=analogread(A2);//爪子
+  int joy2_y=analogread(A3);//rarm
+if(abs(joy1_x-512)>deadzone)
+{
+  base_angle+=(joy1_x>512?step:-step);
+  base_angle=constrain(base_angle,basemin,basemax);
+  base.write(base_angle);
+  delay(DSD);
 }
-
-// ========== 3. 摇杆控制函数 ==========
-void handlejoystick() {
-  int j1x = analogRead(joy1x_pin);
-  int j1y = analogRead(joy1y_pin);
-  int j2x = analogRead(joy2x_pin);
-  int j2y = analogRead(joy2y_pin);
-
-  // 摇杆1 X -> 底座（反向）
-  if (abs(j1x - 512) > deadzone) {
-    base_angle += (j1x > 512) ? -step : step;
-    base_angle = constrain(base_angle, basemin, basemax);
-    base.write(base_angle);
-    delay(DSD);
-  }
-
-  // 摇杆1 Y -> 后臂
-  if (abs(j1y - 512) > deadzone) {
-    rArm_angle += (j1y > 512) ? -step : step;
-    rArm_angle = constrain(rArm_angle, rArmmin, rArmmax);
-    rArm.write(rArm_angle);
-    delay(DSD);
-  }
-
-  // 摇杆2 X -> 前臂
-  if (abs(j2x - 512) > deadzone) {
-    fArm_angle += (j2x > 512) ? step : -step;
-    fArm_angle = constrain(fArm_angle, fArmmin, fArmmax);
-    fArm.write(fArm_angle);
-    delay(DSD);
-  }
-
-  // 摇杆2 Y -> 夹爪
-  if (abs(j2y - 512) > deadzone) {
-    claw_angle += (j2y > 512) ? step : -step;
-    claw_angle = constrain(claw_angle, min(clawopen, clawoff), max(clawopen, clawoff));
-    claw.write(claw_angle);
-    delay(DSD);
-  }
+else if(abs(joy1_y-512)>deadzone)
+{
+  larm_angle+=(joy1_y>512?step:-step);
+  larm_angle=constrain(larm_angle,larmmin,larmmax);
+  larm.write(larm_angle);
+  delay(DSD);
+}
+if(abs(joy2_x-512)>deadzone)
+{
+  claw_angle+=(joy2_x>512?step:-step);
+  claw_angle=constrain(claw_angle,clawoff,clawopen);
+  claw.write(claw_angle);
+  delay(DSD);
+}
+if(abs(joy2_y-512)>deadzone)
+{
+  rarm_angle+=(joy2_y>512?step:-step);
+  rarm_angle=constrain(rarm_angle,rarmmin,rarmmax);
+  rarm.write(rarm_angle);
+  delay(DSD);
 }
