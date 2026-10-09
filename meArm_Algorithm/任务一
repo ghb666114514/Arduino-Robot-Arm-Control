@@ -4,13 +4,14 @@ void gohome();//回中函数
 void serial_handle();//串口指令读取与处理
 void joystick_handle();//摇杆指令处理
 void pick(int place[][4]);//夹取物体函数
+void moveToAngle(Servo &s, int &current, int target);//平滑移动函数
 //------------------
 Servo base,larm,rarm,claw;//创建舵机对象
 
 //2.DSD 与 step 与 死区
-int DSD = 15; //摇杆延时
-int step = 3; //摇杆步进
-int deadzone = 50;
+int DSD = 20; //摇杆延时
+int step = 1; //摇杆步进
+int deadzone = 300;
 
 //3.当前舵机角度
 int base_angle = 90;
@@ -21,55 +22,50 @@ int claw_angle = 90;
 //4.极限角度区
 const int basemin=0;
 const int basemax=180;
-const int larmmin=0;
-const int larmmax=180;
-const int rarmmin=0;
+const int larmmin=45;
+const int larmmax=140;
+const int rarmmin=70;
 const int rarmmax=180;
-const int clawopen=0;
-const int clawoff=180;
+const int clawopen=80;
+const int clawoff=155;
+
 //5.任务二夹取物体区
 int Aplace[8][4] = {
-  // base, larm, rarm, claw
-  { 90, 90, 90, 20 },   // 1. 物体正上方
-  { 90, 80, 100, 20 },  // 2. 下降到物体
-  { 90, 80, 100, 105 }, // 3. 夹爪闭合
-  { 90, 90, 90, 105 },  // 4. 抬升
-  { 45, 90, 90, 105 },  // 5. 放置点上方
-  { 45, 80, 100, 105 }, // 6. 下降到放置点
-  { 45, 80, 100, 20 },  // 7. 夹爪张开
-  { 45, 90, 90, 20 }    // 8. 抬升
+  { 90, 90, 90, 20 },
+  { 90, 80, 100, 20 },
+  { 90, 80, 100, 105 },
+  { 90, 90, 90, 105 },
+  { 45, 90, 90, 105 },
+  { 45, 80, 100, 105 },
+  { 45, 80, 100, 20 },
+  { 45, 90, 90, 20 }
 };
 
 int Bplace[8][4] = {
-  // base, larm, rarm, claw
-  { 90, 90, 90, 20 },   // 1. 物体正上方
-  { 90, 80, 100, 20 },  // 2. 下降到物体
-  { 90, 80, 100, 105 }, // 3. 夹爪闭合
-  { 90, 90, 90, 105 },  // 4. 抬升
-  { 45, 90, 90, 105 },  // 5. 放置点上方
-  { 45, 80, 100, 105 }, // 6. 下降到放置点
-  { 45, 80, 100, 20 },  // 7. 夹爪张开
-  { 45, 90, 90, 20 }    // 8. 抬升
+  { 132, 90, 90, 120 },
+  { 90, 45, 100, 120 },
+  { 90, 80, 100, 120 },
+  { 90, 90, 90, 120 },
+  { 45, 90, 90, 120 },
+  { 45, 80, 100, 120 },
+  { 45, 80, 100, 80 },
+  { 45, 90, 90, 80 }
 };
 
 int Cplace[8][4] = {
-  // base, larm, rarm, claw
-  { 90, 90, 90, 20 },   // 1. 物体正上方
-  { 90, 80, 100, 20 },  // 2. 下降到物体
-  { 90, 80, 100, 105 }, // 3. 夹爪闭合
-  { 90, 90, 90, 105 },  // 4. 抬升
-  { 45, 90, 90, 105 },  // 5. 放置点上方
-  { 45, 80, 100, 105 }, // 6. 下降到放置点
-  { 45, 80, 100, 20 },  // 7. 夹爪张开
-  { 45, 90, 90, 20 }    // 8. 抬升
+  { 90, 90, 90, 20 },
+  { 90, 80, 100, 20 },
+  { 90, 80, 100, 105 },
+  { 90, 90, 90, 105 },
+  { 45, 90, 90, 105 },
+  { 45, 80, 100, 105 },
+  { 45, 80, 100, 20 },
+  { 45, 90, 90, 20 }
 };
-
-
-
 
 void setup()
 {
-  Serial.begin(9600);//开启串口通信
+  Serial.begin(9600);
   base.attach(9);
   delay(200);
   larm.attach(8);
@@ -78,7 +74,7 @@ void setup()
   delay(200);
   claw.attach(6);
   delay(200);
-  gohome();//上电回中
+  gohome();
   Serial.println("meArm ready!请发送指令:O/S/H/L/I/P/A/B/C");
   Serial.println("或发送多电机协同控制指令,x控制底座,y控制左臂,z控制右臂,格式为x30,y45,z60");
 }
@@ -90,20 +86,30 @@ void loop()
 }
 
 //函数定义区-----------------
+
+// ========== 平滑移动 ==========
+void moveToAngle(Servo &s, int &current, int target) {
+  target = constrain(target, 0, 180);
+
+  while (current != target) {
+    if (current < target) {
+      current += step;
+      if (current > target) current = target;
+    } else {
+      current -= step;
+      if (current < target) current = target;
+    }
+    s.write(current);
+    delay(DSD);
+  }
+}
+
 void gohome()
 {
-  base_angle=90;
-  larm_angle=90;
-  rarm_angle=90;
-  claw_angle=90;
-  base.write(90);
-  delay(300);
-  larm.write(90);
-  delay(300);
-  rarm.write(90);
-  delay(300);
-  claw.write(90);
-  delay(300);
+  moveToAngle(base, base_angle, 90);
+  moveToAngle(larm, larm_angle, 90);
+  moveToAngle(rarm, rarm_angle, 90);
+  moveToAngle(claw, claw_angle, 90);
 }
 
 void serial_handle()
@@ -115,32 +121,30 @@ void serial_handle()
 
     if(cmd=="O")
     {
-      claw_angle = clawopen;
-      claw.write(clawopen);
+      moveToAngle(claw, claw_angle, clawopen);
       Serial.println("Claw open!");
     }
 
     else if(cmd=="S")
     {
-      claw_angle = clawoff;
-      claw.write(clawoff);
+      moveToAngle(claw, claw_angle, clawoff);
       Serial.println("Claw close!");
     }
 
     else if(cmd=="H")
     {
       DSD = max(5, DSD - 3);
-      step = min(15, step + 3);
+      step = min(15, step + 1);
       Serial.print("Speed up! DSD=");
       Serial.print(DSD);
       Serial.print(", step=");
       Serial.println(step);
     }
-    
+
     else if(cmd=="L")
     {
-      DSD = min(30, DSD + 5);
-      step = max(1, step - 3);
+      DSD = min(30, DSD + 3);
+      step = max(1, step - 1);
       Serial.print("Speed low! DSD=");
       Serial.print(DSD);
       Serial.print(", step=");
@@ -150,8 +154,9 @@ void serial_handle()
     else if(cmd=="I")
     {
       gohome();
+      Serial.println("Go home!");
     }
-    
+
     else if(cmd=="P")
     {
       Serial.println("---- 当前角度 ----");
@@ -163,104 +168,110 @@ void serial_handle()
       Serial.println(rarm_angle);
       Serial.print("claw = ");
       Serial.println(claw_angle);
-      Serial.print("DSD=")
-      Serial.println(DSD);
-      Serial.print("step=")
-      Serial.println(step);
       Serial.println("------------------");
     }
     //多舵机协同控制
-    else if (cmd.startsWith("x")) 
+    else if (cmd.startsWith("x"))
     {
-    if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &base_angle, &larm_angle, &rarm_angle) == 3) 
-    {
-        base_angle = constrain(base_angle, basemin, basemax);
-        larm_angle = constrain(larm_angle, larmmin, larmmax);
-        rarm_angle = constrain(rarm_angle, rarmmin, rarmmax);
+      int x, y, z;
+      if (sscanf(cmd.c_str(), "x%d,y%d,z%d", &x, &y, &z) == 3)
+      {
+        x = constrain(x, basemin, basemax);
+        y = constrain(y, larmmin, larmmax);
+        z = constrain(z, rarmmin, rarmmax);
 
-        base.write(base_angle);
-        delay(300);
-        larm.write(larm_angle);
-        delay(300);
-        rarm.write(rarm_angle);
-        delay(300);
+        moveToAngle(base, base_angle, x);
+        moveToAngle(larm, larm_angle, y);
+        moveToAngle(rarm, rarm_angle, z);
+
+        Serial.print("base: ");
+        Serial.print(base_angle);
+        Serial.print("°  duty=");
+        Serial.print(base.readMicroseconds() / 20000.0 * 100.0, 2);
+        Serial.println("%");
+
+        Serial.print("larm: ");
+        Serial.print(larm_angle);
+        Serial.print("°  duty=");
+        Serial.print(larm.readMicroseconds() / 20000.0 * 100.0, 2);
+        Serial.println("%");
+
+        Serial.print("rarm: ");
+        Serial.print(rarm_angle);
+        Serial.print("°  duty=");
+        Serial.print(rarm.readMicroseconds() / 20000.0 * 100.0, 2);
+        Serial.println("%");
 
         Serial.println("多舵机协同转动完毕！");
+      }
     }
 
-
-  }
-
-  else if (cmd == "A") 
-{
-  pick(Aplace);
-  Serial.println("A done");
-}
-else if (cmd == "B") 
-{
-  pick(Bplace);
-  Serial.println("B done");
-}
-else if (cmd == "C") 
-{
-  pick(Cplace);
-  Serial.println("C done");
-}
-else
+    else if (cmd == "A")
+    {
+      pick(Aplace);
+      Serial.println("A done");
+    }
+    else if (cmd == "B")
+    {
+      pick(Bplace);
+      Serial.println("B done");
+    }
+    else if (cmd == "C")
+    {
+      pick(Cplace);
+      Serial.println("C done");
+    }
+    else
     {
       Serial.println("指令错误！");
     }
   }
-
 }
 
-void joystick_handle() 
+void joystick_handle()
 {
-  int joy1_x=analogRead(A0);//base
-  int joy1_y=analogRead(A1);//larm
-  int joy2_x=analogRead(A2);//claw
-  int joy2_y=analogRead(A3);//rarm
-if(abs(joy1_x-512)>deadzone)
-{
-  base_angle+=(joy1_x>512?-step:step);
-  base_angle=constrain(base_angle,basemin,basemax);
-  base.write(base_angle);
-  delay(DSD);
-}
-if(abs(joy1_y-512)>deadzone)
-{
-  larm_angle+=(joy1_y>512?step:-step);
-  larm_angle=constrain(larm_angle,larmmin,larmmax);
-  larm.write(larm_angle);
-  delay(DSD);
-}
-if(abs(joy2_x-512)>deadzone)
-{
-  claw_angle+=(joy2_x>512?step:-step);
-  claw_angle=constrain(claw_angle,clawoff,clawopen);
-  claw.write(claw_angle);
-  delay(DSD);
-}
-if(abs(joy2_y-512)>deadzone)
-{
-  rarm_angle+=(joy2_y>512?step:-step);
-  rarm_angle=constrain(rarm_angle,rarmmin,rarmmax);
-  rarm.write(rarm_angle);
-  delay(DSD);
-}
-}
+  int joy1_x=analogRead(A0);
+  int joy1_y=analogRead(A1);
+  int joy2_x=analogRead(A2);
+  int joy2_y=analogRead(A3);
 
-void pick(int place[][4]) 
-{
-  for (int i = 0; i < 8; i++) 
+  if(abs(joy1_x-512)>deadzone)
   {
-    base.write(place[i][0]);
-    delay(200);
-    larm.write(place[i][1]);
-    delay(200);
-    rarm.write(place[i][2]);
-    delay(200);
-    claw.write(place[i][3]);
-    delay(200);
+    base_angle+=(joy1_x>512?-step:step);
+    base_angle=constrain(base_angle,basemin,basemax);
+    base.write(base_angle);
+    delay(DSD);
+  }
+  if(abs(joy1_y-512)>deadzone)
+  {
+    larm_angle+=(joy1_y>512?step:-step);
+    larm_angle=constrain(larm_angle,larmmin,larmmax);
+    larm.write(larm_angle);
+    delay(DSD);
+  }
+  if(abs(joy2_x-512)>deadzone)
+  {
+    claw_angle+=(joy2_x>512?step:-step);
+    claw_angle=constrain(claw_angle,clawopen,clawoff);
+    claw.write(claw_angle);
+    delay(DSD);
+  }
+  if(abs(joy2_y-512)>deadzone)
+  {
+    rarm_angle+=(joy2_y>512?step:-step);
+    rarm_angle=constrain(rarm_angle,rarmmin,rarmmax);
+    rarm.write(rarm_angle);
+    delay(DSD);
+  }
+}
+
+void pick(int place[][4])
+{
+  for (int i = 0; i < 8; i++)
+  {
+    moveToAngle(base, base_angle, place[i][0]);
+    moveToAngle(larm, larm_angle, place[i][1]);
+    moveToAngle(rarm, rarm_angle, place[i][2]);
+    moveToAngle(claw, claw_angle, place[i][3]);
   }
 }
