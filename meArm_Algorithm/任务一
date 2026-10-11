@@ -23,11 +23,11 @@ int claw_angle = 90;
 const int basemin=0;
 const int basemax=180;
 const int larmmin=45;
-const int larmmax=140;
-const int rarmmin=70;
-const int rarmmax=180;
-const int clawopen=80;
-const int clawoff=155;
+const int larmmax=125;
+const int rarmmin=50;
+const int rarmmax=140;
+const int clawopen=20;
+const int clawoff=90;
 
 //5.任务二夹取物体区
 int Aplace[8][4] = {
