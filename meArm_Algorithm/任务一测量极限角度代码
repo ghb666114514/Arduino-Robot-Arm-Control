@@ -1,0 +1,126 @@
+#include <Servo.h>
+
+// ========== 引脚 ==========
+#define BASEPIN  9
+#define LARMPIN  8
+#define RARMPIN  7
+#define CLAWPIN  6
+
+#define JOY1X_PIN A0
+#define JOY1Y_PIN A1
+#define JOY2X_PIN A2
+#define JOY2Y_PIN A3
+
+// ========== 舵机 ==========
+Servo base;
+Servo larm;
+Servo rarm;
+Servo claw;
+
+// ========== 当前角度（测量时范围放宽到 0~180）==========
+int base_angle = 90;
+int larm_angle = 90;
+int rarm_angle = 90;
+int claw_angle = 90;
+
+// ========== 死区和步进 ==========
+const int deadzone = 50;
+const int step = 1;
+const int DSD = 20;
+
+void setup() {
+  Serial.begin(9600);
+
+  base.attach(BASEPIN);
+  delay(200);
+  larm.attach(LARMPIN);
+  delay(200);
+  rarm.attach(RARMPIN);
+  delay(200);
+  claw.attach(CLAWPIN);
+  delay(200);
+
+  // 回中
+  base.write(base_angle);
+  larm.write(larm_angle);
+  rarm.write(rarm_angle);
+  claw.write(claw_angle);
+  delay(500);
+
+  Serial.println("===== 极限角度测量 =====");
+  Serial.println("摇杆控制舵机，发送 P 打印当前角度");
+  Serial.println("摇杆1 X -> 底座");
+  Serial.println("摇杆1 Y -> larm");
+  Serial.println("摇杆2 X -> rarm");
+  Serial.println("摇杆2 Y -> 夹爪");
+  Serial.println("=========================");
+}
+
+void loop() {
+  handleJoystick();
+  serial_handle();
+}
+
+// ========== 摇杆控制 ==========
+void handleJoystick() {
+  int j1x = analogRead(JOY1X_PIN);
+  int j1y = analogRead(JOY1Y_PIN);
+  int j2x = analogRead(JOY2X_PIN);
+  int j2y = analogRead(JOY2Y_PIN);
+
+  // 摇杆1 X -> 底座
+  if (abs(j1x - 512) > deadzone) {
+    base_angle += (j1x > 512) ? -step : step;
+    base_angle = constrain(base_angle, 0, 180);
+    base.write(base_angle);
+    delay(DSD);
+  }
+
+  // 摇杆1 Y -> larm
+  if (abs(j1y - 512) > deadzone) {
+    larm_angle += (j1y > 512) ? -step : step;
+    larm_angle = constrain(larm_angle, 0, 180);
+    larm.write(larm_angle);
+    delay(DSD);
+  }
+
+  // 摇杆2 X -> rarm
+  if (abs(j2x - 512) > deadzone) {
+    rarm_angle += (j2x > 512) ? step : -step;
+    rarm_angle = constrain(rarm_angle, 0, 180);
+    rarm.write(rarm_angle);
+    delay(DSD);
+  }
+
+  // 摇杆2 Y -> 夹爪
+  if (abs(j2y - 512) > deadzone) {
+    claw_angle += (j2y > 512) ? step : -step;
+    claw_angle = constrain(claw_angle, 0, 180);
+    claw.write(claw_angle);
+    delay(DSD);
+  }
+}
+
+// ========== 串口指令 ==========
+void serial_handle() {
+  if (Serial.available() > 0) {
+    String cmd = Serial.readStringUntil('\n');
+    cmd.trim();
+
+    if (cmd == "P") {
+      Serial.println("---- 当前角度 ----");
+      Serial.print("base = ");
+      Serial.println(base_angle);
+      Serial.print("larm = ");
+      Serial.println(larm_angle);
+      Serial.print("rarm = ");
+      Serial.println(rarm_angle);
+      Serial.print("claw = ");
+      Serial.println(claw_angle);
+      Serial.println("------------------");
+    }
+    else {
+      Serial.println("cmd ERROR!");
+    }
+  }
+}
