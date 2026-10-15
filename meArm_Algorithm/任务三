@@ -4,7 +4,7 @@
 void gohome();
 void serial_handle();
 void joystick_handle();
-void pick(int place[][4]);
+void pick(byte place[][4]);
 void moveToAngle(Servo &s, int &current, int target);
 void onButton1();
 void onButton2();
@@ -30,10 +30,10 @@ const int basemin = 0;
 const int basemax = 180;
 const int larmmin = 45;
 const int larmmax = 125;
-const int rarmmin = 50;
-const int rarmmax = 140;
+const int rarmmin = 60;
+const int rarmmax = 136;
 const int clawopen = 20;
-const int clawoff = 110;
+const int clawoff = 100;
 
 // ========== 按键引脚 ==========
 #define btn1Pin 2
@@ -60,7 +60,7 @@ unsigned long lastRecordTime = 0;
 int taskIndex = 0;
 
 // ========== 任务二夹取物体区 ==========
-int Aplace[8][4] = {
+byte Aplace[8][4] = {
   { 90, 90, 90, 20 },
   { 90, 80, 100, 20 },
   { 90, 80, 100, 105 },
@@ -71,7 +71,7 @@ int Aplace[8][4] = {
   { 45, 90, 90, 20 }
 };
 
-int Bplace[8][4] = {
+byte Bplace[8][4] = {
   { 132, 90, 90, 120 },
   { 90, 45, 100, 120 },
   { 90, 80, 100, 120 },
@@ -82,28 +82,29 @@ int Bplace[8][4] = {
   { 45, 90, 90, 80 }
 };
 
-int Cplace[8][4] = {
-  { 108, 99, 129, 120 },
-  { 127, 45, 122, 20 },
-  { 90, 80, 100, 105 },
-  { 90, 90, 90, 105 },
-  { 45, 90, 90, 105 },
-  { 45, 80, 100, 105 },
-  { 45, 80, 100, 20 },
-  { 45, 90, 90, 20 }
+byte Cplace[8][4] = {
+  { 62, 90, 110, 20 },
+  { 64, 49, 136, 20 },
+  { 64, 49, 136, 100 },
+  { 67, 80, 91, 100 },
+  { 136, 80, 91, 100 },
+  { 124, 45, 125, 100 },
+  { 124, 45, 125, 20 },
+  { 124, 106, 84, 20 }
 };
 
 void setup() {
   Serial.begin(9600);
+  delay(1000);
 
   base.attach(9);
-  delay(200);
+  delay(1000);
   larm.attach(8);
-  delay(200);
+  delay(1000);
   rarm.attach(7);
-  delay(200);
+  delay(1000);
   claw.attach(6);
-  delay(200);
+  delay(1000);
 
   pinMode(btn1Pin, INPUT_PULLUP);
   pinMode(btn2Pin, INPUT_PULLUP);
@@ -112,8 +113,8 @@ void setup() {
 
   gohome();
 
-  Serial.println("meArm ready! 请发送指令: O/S/H/L/I/P/A/B/C/K1/K2/K3/K4");
-  Serial.println("或多电机协同: x30,y45,z60");
+  Serial.println(F("meArm ready! 请发送指令: O/S/H/L/I/P/A/B/C/K1/K2/K3/K4"));
+  Serial.println(F("或多电机协同: x30,y45,z60"));
 }
 
 void loop() {
@@ -166,7 +167,7 @@ void loop() {
       } else {
         isRecording = false;
         recordLength = recordIndex;
-        Serial.println("Record buffer full! Recording stopped.");
+        Serial.println(F("Record buffer full! Recording stopped."));
       }
     }
   }
@@ -197,21 +198,21 @@ void gohome() {
 }
 
 // ========== 执行动作序列 ==========
-void pick(int place[][4]) {
+void pick(byte place[][4]) {
   for (int i = 0; i < 8; i++) {
-    moveToAngle(base, base_angle, place[i][0]);
-    moveToAngle(larm, larm_angle, place[i][1]);
-    moveToAngle(rarm, rarm_angle, place[i][2]);
-    moveToAngle(claw, claw_angle, place[i][3]);
+    moveToAngle(base, base_angle, place[i][0]);delay(500);
+    moveToAngle(larm, larm_angle, place[i][1]);delay(500);
+    moveToAngle(rarm, rarm_angle, place[i][2]);delay(500);
+    moveToAngle(claw, claw_angle, place[i][3]);delay(500);
   }
 }
 
 // ========== 按键1：循环夹取 ==========
 void onButton1() {
   switch (taskIndex) {
-    case 0: pick(Aplace); Serial.println("Pick A"); break;
-    case 1: pick(Bplace); Serial.println("Pick B"); break;
-    case 2: pick(Cplace); Serial.println("Pick C"); break;
+    case 0: pick(Aplace); Serial.println(F("Pick A")); break;
+    case 1: pick(Bplace); Serial.println(F("Pick B")); break;
+    case 2: pick(Cplace); Serial.println(F("Pick C")); break;
   }
   taskIndex = (taskIndex + 1) % 3;
 }
@@ -222,11 +223,11 @@ void onButton2() {
     isRecording = true;
     recordIndex = 0;
     lastRecordTime = millis();
-    Serial.println("Recording start");
+    Serial.println(F("Recording start"));
   } else {
     isRecording = false;
     recordLength = recordIndex;
-    Serial.print("Recording end, points=");
+    Serial.print(F("Recording end, points="));
     Serial.println(recordLength);
   }
 }
@@ -234,7 +235,7 @@ void onButton2() {
 // ========== 按键3：播放 ==========
 void onButton3() {
   if (recordLength == 0) {
-    Serial.println("No recording!");
+    Serial.println(F("No recording!"));
     return;
   }
   for (int i = 0; i < recordLength; i++) {
@@ -244,13 +245,13 @@ void onButton3() {
     claw.write(recordBuffer[i][3]);
     delay(recordInterval);
   }
-  Serial.println("Playback done");
+  Serial.println(F("Playback done"));
 }
 
 // ========== 按键4：回中 ==========
 void onButton4() {
   gohome();
-  Serial.println("Go home!");
+  Serial.println(F("Go home!"));
 }
 
 // ========== 串口处理 ==========
@@ -261,43 +262,43 @@ void serial_handle() {
 
     if (cmd == "O") {
       moveToAngle(claw, claw_angle, clawopen);
-      Serial.println("Claw open!");
+      Serial.println(F("Claw open!"));
     }
     else if (cmd == "S") {
       moveToAngle(claw, claw_angle, clawoff);
-      Serial.println("Claw close!");
+      Serial.println(F("Claw close!"));
     }
     else if (cmd == "H") {
       DSD = max(5, DSD - 3);
       step = min(15, step + 1);
-      Serial.print("Speed up! DSD=");
+      Serial.print(F("Speed up! DSD="));
       Serial.print(DSD);
-      Serial.print(", step=");
+      Serial.print(F(", step="));
       Serial.println(step);
     }
     else if (cmd == "L") {
       DSD = min(30, DSD + 3);
       step = max(1, step - 1);
-      Serial.print("Speed low! DSD=");
+      Serial.print(F("Speed low! DSD="));
       Serial.print(DSD);
-      Serial.print(", step=");
+      Serial.print(F(", step="));
       Serial.println(step);
     }
     else if (cmd == "I") {
       gohome();
-      Serial.println("Go home!");
+      Serial.println(F("Go home!"));
     }
     else if (cmd == "P") {
-      Serial.println("---- 当前角度 ----");
-      Serial.print("base = ");
+      Serial.println(F("---- 当前角度 ----"));
+      Serial.print(F("base = "));
       Serial.println(base_angle);
-      Serial.print("larm = ");
+      Serial.print(F("larm = "));
       Serial.println(larm_angle);
-      Serial.print("rarm = ");
+      Serial.print(F("rarm = "));
       Serial.println(rarm_angle);
-      Serial.print("claw = ");
+      Serial.print(F("claw = "));
       Serial.println(claw_angle);
-      Serial.println("------------------");
+      Serial.println(F("------------------"));
     }
     else if (cmd.startsWith("x")) {
       int x, y, z;
@@ -310,45 +311,45 @@ void serial_handle() {
         moveToAngle(larm, larm_angle, y);
         moveToAngle(rarm, rarm_angle, z);
 
-        Serial.print("base: ");
+        Serial.print(F("base: "));
         Serial.print(base_angle);
-        Serial.print("°  duty=");
+        Serial.print(F("°  duty="));
         Serial.print(base.readMicroseconds() / 20000.0 * 100.0, 2);
-        Serial.println("%");
+        Serial.println(F("%"));
 
-        Serial.print("larm: ");
+        Serial.print(F("larm: "));
         Serial.print(larm_angle);
-        Serial.print("°  duty=");
+        Serial.print(F("°  duty="));
         Serial.print(larm.readMicroseconds() / 20000.0 * 100.0, 2);
-        Serial.println("%");
+        Serial.println(F("%"));
 
-        Serial.print("rarm: ");
+        Serial.print(F("rarm: "));
         Serial.print(rarm_angle);
-        Serial.print("°  duty=");
+        Serial.print(F("°  duty="));
         Serial.print(rarm.readMicroseconds() / 20000.0 * 100.0, 2);
-        Serial.println("%");
+        Serial.println(F("%"));
 
-        Serial.println("多舵机协同转动完毕！");
+        Serial.println(F("多舵机协同转动完毕！"));
       }
     }
     else if (cmd == "A") {
       pick(Aplace);
-      Serial.println("A done");
+      Serial.println(F("A done"));
     }
     else if (cmd == "B") {
       pick(Bplace);
-      Serial.println("B done");
+      Serial.println(F("B done"));
     }
     else if (cmd == "C") {
       pick(Cplace);
-      Serial.println("C done");
+      Serial.println(F("C done"));
     }
     else if (cmd == "K1") onButton1();
     else if (cmd == "K2") onButton2();
     else if (cmd == "K3") onButton3();
     else if (cmd == "K4") onButton4();
     else {
-      Serial.println("指令错误！");
+      Serial.println(F("指令错误！"));
     }
   }
 }
