@@ -51,8 +51,8 @@ int lastBtn4 = HIGH;
 #define recordInterval 100
 
 byte recordBuffer[maxRecord][4];
-int recordIndex = 0;
-int recordLength = 0;
+int recordIndex = 0;//坐标点索引
+int recordLength = 0;//已经记录的点
 bool isRecording = false;
 unsigned long lastRecordTime = 0;
 
@@ -61,14 +61,14 @@ int taskIndex = 0;
 
 // ========== 任务二夹取物体区 ==========
 byte Aplace[8][4] = {
-  { 90, 90, 90, 20 },
-  { 90, 80, 100, 20 },
-  { 90, 80, 100, 105 },
-  { 90, 90, 90, 105 },
-  { 45, 90, 90, 105 },
-  { 45, 80, 100, 105 },
-  { 45, 80, 100, 20 },
-  { 45, 90, 90, 20 }
+  { 47, 45, 90, 22 },
+  { 47, 45, 136, 22 },
+  { 47, 45, 136, 100 },
+  { 47, 45, 99, 100 },
+  { 130, 45, 97, 100 },
+  { 130, 45, 136, 100 },
+  { 130, 45, 136, 20 },
+  { 130, 45, 91, 20 }
 };
 
 byte Bplace[8][4] = {
@@ -156,8 +156,8 @@ void loop() {
   // 录制中（用 millis 不阻塞）
   if (isRecording) {
     unsigned long now = millis();
-    if (now - lastRecordTime >= recordInterval) {
-      lastRecordTime = now;
+    if (now - lastRecordTime >= recordInterval) {//如果当前时间减记录时间大于等于间隔
+      lastRecordTime = now;//把记录时间重置
       if (recordIndex < maxRecord) {
         recordBuffer[recordIndex][0] = base_angle;
         recordBuffer[recordIndex][1] = larm_angle;
@@ -386,3 +386,4 @@ void joystick_handle() {
     delay(DSD);
   }
 }
+//这是为了测试
