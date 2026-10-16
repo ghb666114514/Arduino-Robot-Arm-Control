@@ -1,10 +1,10 @@
 // ========== 自制板（按键板）代码 ==========
 // 功能：检测4个按键，短按发 K1~K4，长按发 L1~L4
 
-#define btn1Pin 23
-#define btn2Pin 24
-#define btn3Pin 25
-#define btn4Pin 26
+#define btn1Pin A3
+#define btn2Pin A2
+#define btn3Pin A1
+#define btn4Pin A0
 
 #define LONG_PRESS_TIME 1000  // 长按阈值 1 秒
 
