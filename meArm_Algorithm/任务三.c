@@ -36,10 +36,10 @@ const int clawopen = 20;
 const int clawoff = 100;
 
 // ========== 按键引脚 ==========
-#define btn1Pin 2
-#define btn2Pin 3
-#define btn3Pin 4
-#define btn4Pin 5
+#define btn1Pin 23
+#define btn2Pin 24
+#define btn3Pin 25
+#define btn4Pin 26
 
 int lastBtn1 = HIGH;
 int lastBtn2 = HIGH;
@@ -386,4 +386,3 @@ void joystick_handle() {
     delay(DSD);
   }
 }
-//这是为了测试1111
