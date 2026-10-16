@@ -121,7 +121,7 @@ void loop() {
   serial_handle();
   joystick_handle();
 
-  // ========== 按键扫描（临时禁用，接上按键后去掉注释）==========
+  // ========== 按键扫描（已经移植到了按键板）==========
   /*
   int btn1 = digitalRead(btn1Pin);
   if (lastBtn1 == HIGH && btn1 == LOW) {
